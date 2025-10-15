@@ -26,11 +26,11 @@ public class Sabot implements Iterable<Carte> {
     }
 
     
-    public void ajouterCarte(Carte c) {
+    public void ajouterCarte(Carte carte) {
         if (nbCartes >= cartes.length) {
             throw new IllegalStateException("Sabot plein : impossible d'ajouter une carte.");
         }
-        cartes[nbCartes++] = c;
+        cartes[nbCartes++] = carte;
         modCount++;
     }
 
@@ -49,9 +49,7 @@ public class Sabot implements Iterable<Carte> {
 
             @Override
             public Carte next() {
-                if (expectedModCount != modCount) {
-                    throw new ConcurrentModificationException();
-                }
+                verifierConcurence();
                 if (!hasNext()) {
                     throw new NoSuchElementException();
                 }
@@ -59,13 +57,19 @@ public class Sabot implements Iterable<Carte> {
                 return cartes[index++];
             }
 
+			private void verifierConcurence() {
+				if (expectedModCount != modCount) {
+                    throw new ConcurrentModificationException();
+                }
+			}
+
             @Override
             public void remove() {
-                if (!canRemove) 
+
+                verifierConcurence();
+                if (!canRemove) {
                     throw new IllegalStateException("remove() doit suivre un next().");
-                
-                if (expectedModCount != modCount) 
-                    throw new ConcurrentModificationException();
+                }
                 
                 for (int i = index - 1; i < nbCartes - 1; i++) {
                     cartes[i] = cartes[i + 1];
@@ -73,7 +77,8 @@ public class Sabot implements Iterable<Carte> {
                 cartes[--nbCartes] = null; 
                 index--;                   
                 canRemove = false;
-                expectedModCount = ++modCount;
+                modCount++;
+                expectedModCount += modCount;
             }
         };
     }
@@ -83,8 +88,8 @@ public class Sabot implements Iterable<Carte> {
             throw new IllegalStateException("Impossible de piocher : sabot vide.");
         
         Iterator<Carte> it = this.iterator();
-        Carte c = it.next();
+        Carte carte = it.next();
         it.remove(); 
-        return c;
+        return carte;
     }
 }
